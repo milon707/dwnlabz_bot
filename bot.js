@@ -1,44 +1,64 @@
-// bot.js
-
+require('dotenv').config();
 const TelegramBot = require('node-telegram-bot-api');
+const ytdl = require('ytdl-core'); // YouTube
 const axios = require('axios');
+const fs = require('fs');
+const path = require('path');
 
-// ======== BOT TOKEN ========
-// Local testing এর জন্য সরাসরি টোকেন বসাও
-// অথবা Hosting এ ENV variable ব্যবহার করতে পারো
-const TOKEN = process.env.BOT_TOKEN || "8332326285:AAF0FUwGqFMbpDcbDwnDQZhttYybZTbcEiM";
+const bot = new TelegramBot(process.env.BOT_TOKEN, { polling: true });
 
-const bot = new TelegramBot(TOKEN, { polling: true });
-
-// ======== /start COMMAND ========
+// /start
 bot.onText(/\/start/, (msg) => {
-    bot.sendMessage(msg.chat.id, 'Hello! Bot is running ✅\nSend me an Instagram post link to test.');
+    bot.sendMessage(msg.chat.id, 'Hello bot running! Send me a YouTube, Facebook, or TikTok link.');
 });
 
-// ======== MESSAGE LISTENER ========
+// Helper: send file via Telegram
+async function sendVideo(chatId, filePath, fileName) {
+    try {
+        await bot.sendVideo(chatId, filePath, { filename: fileName });
+        fs.unlinkSync(filePath); // clean up after sending
+    } catch (err) {
+        bot.sendMessage(chatId, 'Error sending video. Try again.');
+    }
+}
+
+// Link listener
 bot.on('message', async (msg) => {
     const chatId = msg.chat.id;
     const text = msg.text;
 
-    // Ignore /start messages
-    if(text.startsWith('/start')) return;
+    if (text.startsWith('/start')) return;
 
-    // Check for Instagram link
-    if(text.includes('instagram.com')) {
-        bot.sendMessage(chatId, `Received Instagram link:\n${text}\nProcessing...`);
-
-        // TODO: এখানে পরে real download বা scraping code add করা যাবে
-        // এখন fake response দেখাচ্ছে
-        setTimeout(() => {
-            bot.sendMessage(chatId, '⚠️ Currently, download feature is not active. Only testing the bot.');
-        }, 1500);
-
-    } else {
-        bot.sendMessage(chatId, '❌ Please send a valid Instagram post URL.');
+    if (!text.includes('youtube.com') && !text.includes('fb.watch') && !text.includes('tiktok.com')) {
+        bot.sendMessage(chatId, 'Send a valid YouTube, Facebook, or TikTok link.');
+        return;
     }
-});
 
-// ======== ERROR HANDLING ========
-bot.on("polling_error", (err) => {
-    console.error("Polling error:", err);
+    bot.sendMessage(chatId, 'Processing your link, please wait...');
+
+    try {
+        let tempPath = path.join(__dirname, 'temp_video.mp4');
+
+        // YouTube
+        if (text.includes('youtube.com')) {
+            const info = await ytdl.getInfo(text);
+            const stream = ytdl(text, { quality: 'highest' });
+            const writeStream = fs.createWriteStream(tempPath);
+            stream.pipe(writeStream);
+            writeStream.on('finish', () => sendVideo(chatId, tempPath, `${info.videoDetails.title}.mp4`));
+        }
+        // TikTok or FB (public only)
+        else if (text.includes('tiktok.com') || text.includes('fb.watch')) {
+            // Use a free service for public videos
+            const response = await axios.post('https://api.vevioz.com/api/ajax/download', { url: text });
+            if (response.data && response.data.url) {
+                bot.sendMessage(chatId, `Download link: ${response.data.url}`);
+            } else {
+                bot.sendMessage(chatId, 'Could not generate download link for this video.');
+            }
+        }
+    } catch (err) {
+        console.error(err);
+        bot.sendMessage(chatId, 'Error processing the video. Make sure the link is public and correct.');
+    }
 });
