@@ -3,24 +3,28 @@ const axios = require('axios');
 
 const bot = new TelegramBot(process.env.BOT_TOKEN, { polling: true });
 
-// /start
+// Bot start message
 bot.onText(/\/start/, (msg) => {
-    bot.sendMessage(msg.chat.id, 'Hello bot running!');
+    const chatId = msg.chat.id;
+    bot.sendMessage(chatId, "Hello! DWNLABZ Bot is running.\nSend me an Instagram video link to process.");
 });
 
-// Link listener
+// Message listener
 bot.on('message', async (msg) => {
     const chatId = msg.chat.id;
     const text = msg.text;
 
-    // Ignore /start
-    if(text.startsWith('/start')) return;
+    // Ignore /start again
+    if (text.startsWith('/start')) return;
 
-    // Simple check for Instagram URL
-    if(text.includes('instagram.com')) {
-        // এখানে এখন fake response, পরে real download add করা যাবে
-        bot.sendMessage(chatId, `Received Instagram link: ${text}\nProcessing...`);
+    // Check if it's an Instagram URL
+    if (text.includes('instagram.com')) {
+        bot.sendMessage(chatId, `Received Instagram link:\n${text}\n\nProcessing...`);
+
+        // Here you can add real download logic later
+        // For now, send a sample response
+        bot.sendMessage(chatId, "✅ Fake download ready! (Replace this with real logic later)");
     } else {
-        bot.sendMessage(chatId, 'Send a valid Instagram link.');
+        bot.sendMessage(chatId, "❌ Please send a valid Instagram link.");
     }
 });
