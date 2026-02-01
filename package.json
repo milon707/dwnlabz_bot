@@ -1,15 +1,16 @@
 {
   "name": "dwnlabz_bot",
   "version": "1.0.0",
-  "description": "Telegram Bot for downloading videos",
+  "description": "Telegram bot for downloading YouTube, Facebook, TikTok videos",
   "main": "bot.js",
   "scripts": {
     "start": "node bot.js"
   },
   "dependencies": {
-    "axios": "^1.7.0",
+    "axios": "^1.6.0",
     "node-telegram-bot-api": "^0.61.0",
-    "ytdl-core": "^4.11.1",
-    "dotenv": "^16.3.1"
+    "ytdl-core": "^4.11.2",
+    "tiktok-scraper": "^1.4.22",
+    "fs": "0.0.1-security"
   }
 }
