@@ -1,16 +1,26 @@
 const TelegramBot = require('node-telegram-bot-api');
+const axios = require('axios');
 
-// যদি Environment Variable থাকে, সেটি নাও, নাহলে সরাসরি Token ব্যবহার করো
-const token = process.env.BOT_TOKEN || '8332326285:AAF0FUwGqFMbpDcbDwnDQZhttYybZTbcEiM';
+const bot = new TelegramBot(process.env.BOT_TOKEN, { polling: true });
 
-const bot = new TelegramBot(token, { polling: true });
-
-// /start কমান্ড handle করা
+// /start
 bot.onText(/\/start/, (msg) => {
-    bot.sendMessage(msg.chat.id, 'Hello! Bot is running.');
+    bot.sendMessage(msg.chat.id, 'Hello bot running!');
 });
 
-// এখানে তোমরা পরে চাইলে আরও কমান্ড বা ফাংশন অ্যাড করতে পারো
-bot.onText(/\/help/, (msg) => {
-    bot.sendMessage(msg.chat.id, 'This is a demo download bot. Commands will be added soon.');
+// Link listener
+bot.on('message', async (msg) => {
+    const chatId = msg.chat.id;
+    const text = msg.text;
+
+    // Ignore /start
+    if(text.startsWith('/start')) return;
+
+    // Simple check for Instagram URL
+    if(text.includes('instagram.com')) {
+        // এখানে এখন fake response, পরে real download add করা যাবে
+        bot.sendMessage(chatId, `Received Instagram link: ${text}\nProcessing...`);
+    } else {
+        bot.sendMessage(chatId, 'Send a valid Instagram link.');
+    }
 });
