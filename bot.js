@@ -1,49 +1,44 @@
-require('dotenv').config();
+// bot.js
+
 const TelegramBot = require('node-telegram-bot-api');
-const ytdl = require('ytdl-core');
-const TikTokScraper = require('tiktok-scraper');
 const axios = require('axios');
-const fs = require('fs');
-const path = require('path');
 
-const bot = new TelegramBot(process.env.BOT_TOKEN, { polling: true });
+// ======== BOT TOKEN ========
+// Local testing এর জন্য সরাসরি টোকেন বসাও
+// অথবা Hosting এ ENV variable ব্যবহার করতে পারো
+const TOKEN = process.env.BOT_TOKEN || "8332326285:AAF0FUwGqFMbpDcbDwnDQZhttYybZTbcEiM";
 
-// /start কমান্ড
+const bot = new TelegramBot(TOKEN, { polling: true });
+
+// ======== /start COMMAND ========
 bot.onText(/\/start/, (msg) => {
-    bot.sendMessage(msg.chat.id, 'Hello! Send a YouTube, Facebook public, or TikTok video link to get the download.');
+    bot.sendMessage(msg.chat.id, 'Hello! Bot is running ✅\nSend me an Instagram post link to test.');
 });
 
-// লিঙ্ক প্রসেস
+// ======== MESSAGE LISTENER ========
 bot.on('message', async (msg) => {
     const chatId = msg.chat.id;
     const text = msg.text;
 
+    // Ignore /start messages
     if(text.startsWith('/start')) return;
 
-    try {
-        if(text.includes('youtube.com') || text.includes('youtu.be')){
-            // YouTube ভিডিও
-            const info = await ytdl.getInfo(text);
-            const format = ytdl.chooseFormat(info.formats, { quality: 'highestvideo' });
-            bot.sendMessage(chatId, `YouTube video ready: ${format.url}`);
-        } else if(text.includes('tiktok.com')){
-            // TikTok ভিডিও
-            const videoMeta = await TikTokScraper.getVideoMeta(text, { noWaterMark: true });
-            bot.sendMessage(chatId, `TikTok video ready: ${videoMeta.videoUrl}`);
-        } else if(text.includes('facebook.com')){
-            // Facebook public ভিডিও
-            const fbUrl = `https://api.fbdwn.com/api?url=${encodeURIComponent(text)}`;
-            const res = await axios.get(fbUrl);
-            if(res.data && res.data.download){
-                bot.sendMessage(chatId, `Facebook video ready: ${res.data.download}`);
-            } else {
-                bot.sendMessage(chatId, 'Could not get Facebook video.');
-            }
-        } else {
-            bot.sendMessage(chatId, 'Send a valid YouTube, TikTok, or Facebook video link.');
-        }
-    } catch (err) {
-        console.error(err);
-        bot.sendMessage(chatId, 'Error processing the link.');
+    // Check for Instagram link
+    if(text.includes('instagram.com')) {
+        bot.sendMessage(chatId, `Received Instagram link:\n${text}\nProcessing...`);
+
+        // TODO: এখানে পরে real download বা scraping code add করা যাবে
+        // এখন fake response দেখাচ্ছে
+        setTimeout(() => {
+            bot.sendMessage(chatId, '⚠️ Currently, download feature is not active. Only testing the bot.');
+        }, 1500);
+
+    } else {
+        bot.sendMessage(chatId, '❌ Please send a valid Instagram post URL.');
     }
+});
+
+// ======== ERROR HANDLING ========
+bot.on("polling_error", (err) => {
+    console.error("Polling error:", err);
 });
