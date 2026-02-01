@@ -1,64 +1,63 @@
 require('dotenv').config();
 const TelegramBot = require('node-telegram-bot-api');
-const ytdl = require('ytdl-core'); // YouTube
 const axios = require('axios');
-const fs = require('fs');
-const path = require('path');
+const ytdl = require('ytdl-core'); // YouTube download
 
 const bot = new TelegramBot(process.env.BOT_TOKEN, { polling: true });
 
-// /start
+// /start command
 bot.onText(/\/start/, (msg) => {
-    bot.sendMessage(msg.chat.id, 'Hello bot running! Send me a YouTube, Facebook, or TikTok link.');
+    bot.sendMessage(msg.chat.id, 'Hello bot running!');
 });
 
-// Helper: send file via Telegram
-async function sendVideo(chatId, filePath, fileName) {
-    try {
-        await bot.sendVideo(chatId, filePath, { filename: fileName });
-        fs.unlinkSync(filePath); // clean up after sending
-    } catch (err) {
-        bot.sendMessage(chatId, 'Error sending video. Try again.');
-    }
-}
-
-// Link listener
+// Message listener
 bot.on('message', async (msg) => {
     const chatId = msg.chat.id;
     const text = msg.text;
 
-    if (text.startsWith('/start')) return;
+    // Ignore /start command
+    if(text.startsWith('/start')) return;
 
-    if (!text.includes('youtube.com') && !text.includes('fb.watch') && !text.includes('tiktok.com')) {
-        bot.sendMessage(chatId, 'Send a valid YouTube, Facebook, or TikTok link.');
-        return;
-    }
-
-    bot.sendMessage(chatId, 'Processing your link, please wait...');
-
+    // Simple link detection
     try {
-        let tempPath = path.join(__dirname, 'temp_video.mp4');
-
-        // YouTube
-        if (text.includes('youtube.com')) {
+        if(text.includes('youtube.com') || text.includes('youtu.be')) {
+            bot.sendMessage(chatId, 'Processing YouTube link...');
             const info = await ytdl.getInfo(text);
-            const stream = ytdl(text, { quality: 'highest' });
-            const writeStream = fs.createWriteStream(tempPath);
-            stream.pipe(writeStream);
-            writeStream.on('finish', () => sendVideo(chatId, tempPath, `${info.videoDetails.title}.mp4`));
-        }
-        // TikTok or FB (public only)
-        else if (text.includes('tiktok.com') || text.includes('fb.watch')) {
-            // Use a free service for public videos
-            const response = await axios.post('https://api.vevioz.com/api/ajax/download', { url: text });
-            if (response.data && response.data.url) {
-                bot.sendMessage(chatId, `Download link: ${response.data.url}`);
+            const format = ytdl.chooseFormat(info.formats, { quality: 'highestvideo' });
+            bot.sendMessage(chatId, `Download link: ${format.url}`);
+        } 
+        else if(text.includes('tiktok.com')) {
+            bot.sendMessage(chatId, 'Processing TikTok link...');
+            const apiUrl = `https://api.tikmate.app/api/lookup?url=${text}`;
+            const response = await axios.get(apiUrl);
+            if(response.data && response.data.video[0]) {
+                bot.sendMessage(chatId, `Download link: ${response.data.video[0].url}`);
             } else {
-                bot.sendMessage(chatId, 'Could not generate download link for this video.');
+                bot.sendMessage(chatId, 'Cannot get TikTok video.');
             }
+        } 
+        else if(text.includes('facebook.com')) {
+            bot.sendMessage(chatId, 'Processing Facebook link...');
+            // Using fbdown.net unofficial API
+            const apiUrl = `https://www.fbdown.net/download?url=${encodeURIComponent(text)}`;
+            bot.sendMessage(chatId, `Download link: ${apiUrl}`);
+        } 
+        else if(text.includes('instagram.com')) {
+            bot.sendMessage(chatId, 'Processing Instagram link...');
+            // Using instagram-scraper free endpoint
+            const apiUrl = `https://api.iinsta.net/api?url=${encodeURIComponent(text)}`;
+            const response = await axios.get(apiUrl);
+            if(response.data && response.data.media_url) {
+                bot.sendMessage(chatId, `Download link: ${response.data.media_url}`);
+            } else {
+                bot.sendMessage(chatId, 'Cannot get Instagram media.');
+            }
+        } 
+        else {
+            bot.sendMessage(chatId, 'Send a valid YouTube, TikTok, Facebook, or Instagram link.');
         }
-    } catch (err) {
-        console.error(err);
-        bot.sendMessage(chatId, 'Error processing the video. Make sure the link is public and correct.');
+    } catch(err) {
+        console.log(err);
+        bot.sendMessage(chatId, 'Error processing the link.');
     }
 });
