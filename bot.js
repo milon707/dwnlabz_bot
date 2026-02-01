@@ -1,30 +1,44 @@
+// bot.js
+
 const TelegramBot = require('node-telegram-bot-api');
 const axios = require('axios');
 
-const bot = new TelegramBot(process.env.BOT_TOKEN, { polling: true });
+// ======== BOT TOKEN ========
+// Local testing এর জন্য সরাসরি টোকেন বসাও
+// অথবা Hosting এ ENV variable ব্যবহার করতে পারো
+const TOKEN = process.env.BOT_TOKEN || "8332326285:AAF0FUwGqFMbpDcbDwnDQZhttYybZTbcEiM";
 
-// Bot start message
+const bot = new TelegramBot(TOKEN, { polling: true });
+
+// ======== /start COMMAND ========
 bot.onText(/\/start/, (msg) => {
-    const chatId = msg.chat.id;
-    bot.sendMessage(chatId, "Hello! DWNLABZ Bot is running.\nSend me an Instagram video link to process.");
+    bot.sendMessage(msg.chat.id, 'Hello! Bot is running ✅\nSend me an Instagram post link to test.');
 });
 
-// Message listener
+// ======== MESSAGE LISTENER ========
 bot.on('message', async (msg) => {
     const chatId = msg.chat.id;
     const text = msg.text;
 
-    // Ignore /start again
-    if (text.startsWith('/start')) return;
+    // Ignore /start messages
+    if(text.startsWith('/start')) return;
 
-    // Check if it's an Instagram URL
-    if (text.includes('instagram.com')) {
-        bot.sendMessage(chatId, `Received Instagram link:\n${text}\n\nProcessing...`);
+    // Check for Instagram link
+    if(text.includes('instagram.com')) {
+        bot.sendMessage(chatId, `Received Instagram link:\n${text}\nProcessing...`);
 
-        // Here you can add real download logic later
-        // For now, send a sample response
-        bot.sendMessage(chatId, "✅ Fake download ready! (Replace this with real logic later)");
+        // TODO: এখানে পরে real download বা scraping code add করা যাবে
+        // এখন fake response দেখাচ্ছে
+        setTimeout(() => {
+            bot.sendMessage(chatId, '⚠️ Currently, download feature is not active. Only testing the bot.');
+        }, 1500);
+
     } else {
-        bot.sendMessage(chatId, "❌ Please send a valid Instagram link.");
+        bot.sendMessage(chatId, '❌ Please send a valid Instagram post URL.');
     }
+});
+
+// ======== ERROR HANDLING ========
+bot.on("polling_error", (err) => {
+    console.error("Polling error:", err);
 });
