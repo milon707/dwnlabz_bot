@@ -1,18 +1,13 @@
-// bot.js
-
+require('dotenv').config();
 const TelegramBot = require('node-telegram-bot-api');
 const axios = require('axios');
 
-// ======== BOT TOKEN ========
-// Local testing এর জন্য সরাসরি টোকেন বসাও
-// অথবা Hosting এ ENV variable ব্যবহার করতে পারো
 const TOKEN = process.env.BOT_TOKEN || "8332326285:AAF0FUwGqFMbpDcbDwnDQZhttYybZTbcEiM";
-
 const bot = new TelegramBot(TOKEN, { polling: true });
 
 // ======== /start COMMAND ========
 bot.onText(/\/start/, (msg) => {
-    bot.sendMessage(msg.chat.id, 'Hello! Bot is running ✅\nSend me an Instagram post link to test.');
+    bot.sendMessage(msg.chat.id, '✅ DwnLabz Bot is online!\nSend a YouTube, TikTok, Facebook, or Instagram link to get the download link.');
 });
 
 // ======== MESSAGE LISTENER ========
@@ -20,21 +15,35 @@ bot.on('message', async (msg) => {
     const chatId = msg.chat.id;
     const text = msg.text;
 
-    // Ignore /start messages
     if(text.startsWith('/start')) return;
 
-    // Check for Instagram link
-    if(text.includes('instagram.com')) {
-        bot.sendMessage(chatId, `Received Instagram link:\n${text}\nProcessing...`);
+    try {
+        if(text.includes('instagram.com')) {
+            bot.sendMessage(chatId, 'Processing Instagram link...');
+            const downloadLink = `https://www.instadownloader.org/?url=${encodeURIComponent(text)}`;
+            bot.sendMessage(chatId, `Download link: ${downloadLink}`);
 
-        // TODO: এখানে পরে real download বা scraping code add করা যাবে
-        // এখন fake response দেখাচ্ছে
-        setTimeout(() => {
-            bot.sendMessage(chatId, '⚠️ Currently, download feature is not active. Only testing the bot.');
-        }, 1500);
+        } else if(text.includes('youtube.com') || text.includes('youtu.be')) {
+            bot.sendMessage(chatId, 'Processing YouTube link...');
+            const downloadLink = `https://www.y2mate.com/youtube/${encodeURIComponent(text)}`;
+            bot.sendMessage(chatId, `Download link: ${downloadLink}`);
 
-    } else {
-        bot.sendMessage(chatId, '❌ Please send a valid Instagram post URL.');
+        } else if(text.includes('tiktok.com')) {
+            bot.sendMessage(chatId, 'Processing TikTok link...');
+            const downloadLink = `https://ssstik.io/en/lookup?url=${encodeURIComponent(text)}`;
+            bot.sendMessage(chatId, `Download link: ${downloadLink}`);
+
+        } else if(text.includes('facebook.com')) {
+            bot.sendMessage(chatId, 'Processing Facebook link...');
+            const downloadLink = `https://www.getfvid.com/downloader/facebook?url=${encodeURIComponent(text)}`;
+            bot.sendMessage(chatId, `Download link: ${downloadLink}`);
+
+        } else {
+            bot.sendMessage(chatId, '❌ Please send a valid YouTube, TikTok, Facebook, or Instagram link.');
+        }
+    } catch(err) {
+        console.error(err);
+        bot.sendMessage(chatId, '⚠️ Error processing link. Try again.');
     }
 });
 
